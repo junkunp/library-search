@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>동탄 도서관 장서 검색</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p { font-size: 0.85rem; opacity: 0.85; margin-top: 0.25rem; }
+
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    /* 검색 카드 */
+    .search-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .search-row input {
+      flex: 1;
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-row input:focus { border-color: var(--primary); }
+
+    .search-row button {
+      padding: 0.65rem 1.2rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .search-row button:hover { background: var(--primary-hover); }
+    .search-row button:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+    /* 도서관 선택 */
+    .lib-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .lib-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.7rem;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      background: white;
+    }
+    .lib-chip input[type="checkbox"] { display: none; }
+    .lib-chip:hover { border-color: var(--primary); color: var(--primary); }
+    .lib-chip.checked {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .lib-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .lib-actions button {
+      font-size: 0.78rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      color: var(--gray-600);
+    }
+    .lib-actions button:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* 상태 메시지 */
+    .status {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--gray-400);
+      font-size: 0.9rem;
+    }
+
+    /* 결과 */
+    .result-count {
+      font-size: 0.85rem;
+      color: var(--gray-600);
+      margin-bottom: 0.75rem;
+    }
+
+    .book-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border-left: 4px solid transparent;
+    }
+    .book-card.available { border-left-color: var(--success); }
+    .book-card.unavailable { border-left-color: var(--gray-200); }
+
+    .book-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      line-height: 1.4;
+    }
+    .book-meta {
+      font-size: 0.8rem;
+      color: var(--gray-600);
+      margin-bottom: 0.6rem;
+    }
+
+    .lib-rows { display: flex; flex-direction: column; gap: 0.35rem; }
+
+    .lib-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      background: var(--gray-50);
+    }
+    .lib-name { color: var(--gray-600); }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+    }
+    .badge.loanable { background: #dcfce7; color: var(--success); }
+    .badge.on-loan  { background: #fee2e2; color: var(--danger); }
+    .badge.error    { background: var(--gray-100); color: var(--gray-400); }
+
+    .loader {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.78rem;
+      color: var(--gray-400);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 동탄 도서관 장서 검색</h1>
+  <p>화성시 동탄 지역 도서관 소장·대출 가능 여부를 한번에 확인</p>
+</header>
+
+<main>
+  <div class="search-card">
+    <div class="search-row">
+      <input id="query" type="text" placeholder="도서 제목 또는 저자를 입력하세요" />
+      <button id="searchBtn" onclick="startSearch()">검색</button>
+    </div>
+
+    <div class="lib-grid" id="libGrid"></div>
+    <div class="lib-actions">
+      <button onclick="selectAll()">전체 선택</button>
+      <button onclick="clearAll()">전체 해제</button>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<footer>도서관 정보나루(data4library.kr) API 사용 · 실시간 대출 현황은 도서관 시스템과 차이가 있을 수 있습니다</footer>
+
+<script>
+  const API_KEY = '77fac64086c77f9fe512abdf0e485011f44a24e7950ec86ad24cbe9f9a230c80';
+
+  // 화성시 동탄 지역 도서관 목록 (libCode는 도서관 정보나루 기준)
+  const LIBRARIES = [
+    { name: '동탄도서관',            code: 'RM_HS001' },
+    { name: '동탄복합문화센터도서관', code: 'RM_HS002' },
+    { name: '반석산도서관',           code: 'RM_HS003' },
+    { name: '능동도서관',             code: 'RM_HS004' },
+    { name: '청계도서관',             code: 'RM_HS005' },
+    { name: '남양도서관',             code: 'RM_HS006' },
+  ];
+
+  // 도서관 칩 렌더링
+  const grid = document.getElementById('libGrid');
+  LIBRARIES.forEach(lib => {
+    const chip = document.createElement('label');
+    chip.className = 'lib-chip checked';
+    chip.dataset.code = lib.code;
+    chip.innerHTML = `<input type="checkbox" checked />${lib.name}`;
+    chip.addEventListener('change', () => {});
+    chip.addEventListener('click', () => toggleChip(chip));
+    grid.appendChild(chip);
+  });
+
+  function toggleChip(chip) {
+    chip.classList.toggle('checked');
+  }
+  function selectAll() {
+    document.querySelectorAll('.lib-chip').forEach(c => c.classList.add('checked'));
+  }
+  function clearAll() {
+    document.querySelectorAll('.lib-chip').forEach(c => c.classList.remove('checked'));
+  }
+
+  function selectedLibs() {
+    return [...document.querySelectorAll('.lib-chip.checked')].map(c => ({
+      name: c.textContent.trim(),
+      code: c.dataset.code,
+    }));
+  }
+
+  document.getElementById('query').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startSearch();
+  });
+
+  async function startSearch() {
+    const q = document.getElementById('query').value.trim();
+    if (!q) return;
+
+    const libs = selectedLibs();
+    if (!libs.length) {
+      setResults('<div class="status">검색할 도서관을 하나 이상 선택하세요.</div>');
+      return;
+    }
+
+    document.getElementById('searchBtn').disabled = true;
+    setResults('<div class="status"><span class="loader"></span> 검색 중…</div>');
+
+    try {
+      // 1단계: 도서 목록 조회 (첫 번째 선택 도서관 기준)
+      const books = await searchBooks(q, libs[0].code);
+      if (!books.length) {
+        setResults('<div class="status">검색 결과가 없습니다.</div>');
+        return;
+      }
+
+      // 2단계: 각 도서의 선택된 도서관별 소장 여부 조회
+      renderBooks(books, libs);
+    } catch (err) {
+      setResults(`<div class="status">오류가 발생했습니다: ${err.message}</div>`);
+    } finally {
+      document.getElementById('searchBtn').disabled = false;
+    }
+  }
+
+  async function searchBooks(keyword, libCode) {
+    const url = `https://data4library.kr/api/srchBooks?authKey=${API_KEY}&libCode=${libCode}&title=${encodeURIComponent(keyword)}&format=json&pageSize=10`;
+    const res = await fetch(url);
+    const json = await res.json();
+    const docs = json?.response?.docs;
+    if (!docs) return [];
+    return docs.map(d => d.doc).filter(Boolean);
+  }
+
+  async function checkLoanable(isbn13, libCode) {
+    if (!isbn13) return null;
+    try {
+      const url = `https://data4library.kr/api/bookExist?authKey=${API_KEY}&libCode=${libCode}&isbn13=${isbn13}&format=json`;
+      const res = await fetch(url);
+      const json = await res.json();
+      return json?.response?.result?.loanAvailable; // 'Y' or 'N'
+    } catch {
+      return null;
+    }
+  }
+
+  function renderBooks(books, libs) {
+    const container = document.createElement('div');
+    container.innerHTML = `<div class="result-count">검색 결과 ${books.length}건</div>`;
+
+    books.forEach(book => {
+      const card = document.createElement('div');
+      card.className = 'book-card';
+      card.innerHTML = `
+        <div class="book-title">${book.titleStatement || '제목 없음'}</div>
+        <div class="book-meta">${[book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ')}</div>
+        <div class="lib-rows" id="rows-${book.isbn13}"></div>
+      `;
+      container.appendChild(card);
+
+      const rowsEl = card.querySelector(`#rows-${book.isbn13}`);
+
+      // 각 도서관에 대해 비동기 조회
+      libs.forEach(lib => {
+        const row = document.createElement('div');
+        row.className = 'lib-row';
+        row.innerHTML = `
+          <span class="lib-name">${lib.name}</span>
+          <span class="badge error"><span class="loader"></span></span>
+        `;
+        rowsEl.appendChild(row);
+
+        checkLoanable(book.isbn13, lib.code).then(avail => {
+          const badge = row.querySelector('.badge');
+          if (avail === 'Y') {
+            badge.className = 'badge loanable';
+            badge.textContent = '대출 가능';
+            card.classList.add('available');
+          } else if (avail === 'N') {
+            badge.className = 'badge on-loan';
+            badge.textContent = '대출 중';
+            if (!card.classList.contains('available')) card.classList.add('unavailable');
+          } else {
+            badge.className = 'badge error';
+            badge.textContent = '미소장';
+          }
+        });
+      });
+    });
+
+    setResults(container.outerHTML);
+  }
+
+  function setResults(html) {
+    document.getElementById('results').innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
