@@ -609,18 +609,24 @@
         fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam),
         fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam)
       ]);
+      // 저번 주 순위 맵 (isbn13 → ranking)
       const map2 = {};
       ((j2 && j2.response && j2.response.docs) || []).forEach(d => {
-        if (d.doc && d.doc.isbn13) map2[d.doc.isbn13] = Number(d.doc.loan_count || 0);
+        if (d.doc && d.doc.isbn13) map2[d.doc.isbn13] = Number(d.doc.ranking || 999);
       });
       const books = ((j1 && j1.response && j1.response.docs) || []).map(d => d.doc).filter(Boolean);
+      // 이번 주에 있고 저번 주보다 순위 올랐거나 신규 진입한 책
       const rising = books
-        .map(b => Object.assign({}, b, { diff: Number(b.loan_count || 0) - (map2[b.isbn13] || 0) }))
-        .filter(b => b.diff > 0)
-        .sort((a, b) => b.diff - a.diff)
+        .map(b => {
+          const prevRank = map2[b.isbn13] || 999;
+          const currRank = Number(b.ranking || 999);
+          return Object.assign({}, b, { rankDiff: prevRank - currRank, prevRank });
+        })
+        .filter(b => b.rankDiff > 0 || !map2[b.isbn13])
+        .sort((a, b) => b.rankDiff - a.rankDiff)
         .slice(0, 20);
       if (!rising.length) { document.getElementById('risingResults').innerHTML = '<div class="status">급상승 도서가 없습니다.</div>'; return; }
-      renderRankedBooks(rising, libCode, 'risingResults', b => '▲ ' + b.diff + '회 증가 (이번주 ' + b.loan_count + '회)');
+      renderRankedBooks(rising, libCode, 'risingResults', b => b.prevRank === 999 ? '신규 진입' : '▲ ' + b.rankDiff + '계단 상승');
     } catch (err) {
       document.getElementById('risingResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
     } finally { btn.disabled = false; }
