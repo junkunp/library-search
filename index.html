@@ -562,8 +562,8 @@
       rowsHtml += '<div class="lib-row"><span class="lib-name">' + lib.name + '</span><span class="badge error" id="badge-' + bi + '-' + li + '"><span class="loader"></span></span></div>';
     });
     card.innerHTML =
-      '<div class="book-title">' + (book.titleStatement || '제목 없음') + '</div>' +
-      '<div class="book-meta">' + [book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
+      '<div class="book-title">' + (book.bookname || book.titleStatement || book.title || '제목 없음') + '</div>' +
+      '<div class="book-meta">' + [book.authors || book.author, book.publisher, book.publication_year || book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
       '<div class="lib-rows">' + rowsHtml + '</div>';
     return card;
   }
@@ -638,7 +638,7 @@
       const json = await fetchJson(url);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) { document.getElementById('newResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
-      renderRankedBooks(books, libCode, 'newResults', b => b.publicationYear ? '출판연도: ' + b.publicationYear : '');
+      renderRankedBooks(books, libCode, 'newResults', b => (b.publication_year || b.publicationYear) ? '출판연도: ' + (b.publication_year || b.publicationYear) : '');
     } catch (err) {
       document.getElementById('newResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
     } finally { btn.disabled = false; }
@@ -656,8 +656,8 @@
       const isbn = book.isbn13 || book.isbn || '';
       card.innerHTML =
         '<div class="book-rank">' + (i + 1) + '위</div>' +
-        '<div class="book-title">' + (book.titleStatement || book.title || '제목 없음') + '</div>' +
-        '<div class="book-meta">' + [book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
+        '<div class="book-title">' + (book.bookname || book.titleStatement || book.title || '제목 없음') + '</div>' +
+        '<div class="book-meta">' + [book.authors || book.author, book.publisher, book.publication_year || book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
         (extra ? '<div class="book-extra">' + extra + '</div>' : '') +
         (lib ? '<div class="lib-rows"><div class="lib-row"><span class="lib-name">' + lib.name + '</span><span class="badge error" id="' + containerId + '-badge-' + i + '"><span class="loader"></span></span></div></div>' : '');
       container.appendChild(card);
