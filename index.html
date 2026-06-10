@@ -508,8 +508,10 @@
 
   async function startSearch() {
     const q = document.getElementById('query').value.trim();
+    console.log('[search] query:', q);
     if (!q) return;
     const libs = selectedLibs();
+    console.log('[search] libs:', libs);
     if (!libs.length) {
       document.getElementById('searchResults').innerHTML = '<div class="status">검색할 도서관을 하나 이상 선택하세요.</div>';
       return;
@@ -518,8 +520,11 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
+      const apiUrl = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3';
+      console.log('[search] url:', apiUrl);
       // 첫 번째 선택 도서관으로 검색
-      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3');
+      const json = await fetchJson(apiUrl);
+      console.log('[search] json:', json);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
