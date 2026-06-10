@@ -128,14 +128,9 @@
     .lib-chip input[type="checkbox"] { display: none; }
     .lib-chip:hover { border-color: var(--primary); color: var(--primary); }
     .lib-chip.checked {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 2px 6px rgba(37,99,235,0.35);
-    }
-    .lib-chip.checked::before {
-      content: '✓ ';
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
       font-weight: 700;
     }
 
@@ -429,12 +424,13 @@
     { name: '경기도교육청화성도서관',             code: '141130' },
   ];
 
+  const DEFAULT_SELECTED = new Set(['141283', '141611', '141578', '141624']);
   const grid = document.getElementById('libGrid');
   LIBRARIES.forEach(lib => {
     const chip = document.createElement('label');
-    chip.className = 'lib-chip';
+    chip.className = 'lib-chip' + (DEFAULT_SELECTED.has(lib.code) ? ' checked' : '');
     chip.dataset.code = lib.code;
-    chip.innerHTML = '<input type="checkbox" />' + lib.name;
+    chip.innerHTML = '<input type="checkbox"' + (DEFAULT_SELECTED.has(lib.code) ? ' checked' : '') + ' />' + lib.name;
     chip.addEventListener('click', () => chip.classList.toggle('checked'));
     grid.appendChild(chip);
   });
