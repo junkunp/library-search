@@ -518,18 +518,9 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
-      // 선택된 모든 도서관에서 동시 검색 → 가장 많은 결과 사용
-      const searchTasks = libs.map(lib => () =>
-        fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + lib.code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3')
-      );
-      const searchResults = await runPool(searchTasks, CONCURRENCY);
-
-      // 결과가 가장 많은 도서관 기준으로 책 목록 선택
-      let books = [];
-      searchResults.forEach(json => {
-        const docs = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
-        if (docs.length > books.length) books = docs;
-      });
+      // 첫 번째 선택 도서관으로 검색
+      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3');
+      const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
         document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
