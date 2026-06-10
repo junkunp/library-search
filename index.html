@@ -426,9 +426,9 @@
   const grid = document.getElementById('libGrid');
   LIBRARIES.forEach(lib => {
     const chip = document.createElement('label');
-    chip.className = 'lib-chip checked';
+    chip.className = 'lib-chip';
     chip.dataset.code = lib.code;
-    chip.innerHTML = '<input type="checkbox" checked />' + lib.name;
+    chip.innerHTML = '<input type="checkbox" />' + lib.name;
     chip.addEventListener('click', () => chip.classList.toggle('checked'));
     grid.appendChild(chip);
   });
