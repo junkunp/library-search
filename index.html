@@ -469,11 +469,22 @@
     if (e.key === 'Enter') startSearch();
   });
 
+  async function fetchWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      return res;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function checkLoanable(isbn13, libCode) {
     if (!isbn13) return null;
     try {
       const url = 'https://data4library.kr/api/bookExist?authKey=' + API_KEY + '&libCode=' + libCode + '&isbn13=' + isbn13 + '&format=json';
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, 5000);
       const json = await res.json();
       return json && json.response && json.response.result && json.response.result.loanAvailable;
     } catch (e) { return null; }
@@ -491,8 +502,8 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
-      const url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=10';
-      const res = await fetch(url);
+      const url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3';
+      const res = await fetchWithTimeout(url, 8000);
       const json = await res.json();
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) {
@@ -503,6 +514,22 @@
       container.innerHTML = '<div class="result-count">검색 결과 ' + books.length + '건</div>';
       books.forEach(book => container.appendChild(makeSearchCard(book, libs)));
       document.getElementById('searchResults').innerHTML = container.outerHTML;
+      // 카드 렌더 후 대출 가능 여부 비동기 조회
+      books.forEach((book, bi) => {
+        const isbn = book.isbn13 || book.isbn || '';
+        libs.forEach((lib, li) => {
+          const badgeId = 'badge-' + bi + '-' + li;
+          const cardId = 'scard-' + bi;
+          checkLoanable(isbn, lib.code).then(avail => {
+            const badge = document.getElementById(badgeId);
+            const cardEl = document.getElementById(cardId);
+            if (!badge || !cardEl) return;
+            if (avail === 'Y') { badge.className = 'badge loanable'; badge.textContent = '대출 가능'; cardEl.classList.add('available'); }
+            else if (avail === 'N') { badge.className = 'badge on-loan'; badge.textContent = '대출 중'; if (!cardEl.classList.contains('available')) cardEl.classList.add('unavailable'); }
+            else { badge.className = 'badge error'; badge.textContent = '미소장'; }
+          });
+        });
+      });
     } catch (err) {
       document.getElementById('searchResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
     } finally {
@@ -511,27 +538,19 @@
   }
 
   function makeSearchCard(book, libs) {
+    const bi = Math.random().toString(36).slice(2);
     const card = document.createElement('div');
     card.className = 'book-card';
+    card.id = 'scard-' + bi;
     const isbn = book.isbn13 || book.isbn || '';
-    const rowsId = 'rows-' + isbn + '-' + Math.random().toString(36).slice(2);
+    let rowsHtml = '';
+    libs.forEach((lib, li) => {
+      rowsHtml += '<div class="lib-row"><span class="lib-name">' + lib.name + '</span><span class="badge error" id="badge-' + bi + '-' + li + '"><span class="loader"></span></span></div>';
+    });
     card.innerHTML =
       '<div class="book-title">' + (book.titleStatement || '제목 없음') + '</div>' +
       '<div class="book-meta">' + [book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
-      '<div class="lib-rows" id="' + rowsId + '"></div>';
-    const rowsEl = card.querySelector('#' + rowsId);
-    libs.forEach(lib => {
-      const row = document.createElement('div');
-      row.className = 'lib-row';
-      row.innerHTML = '<span class="lib-name">' + lib.name + '</span><span class="badge error"><span class="loader"></span></span>';
-      rowsEl.appendChild(row);
-      checkLoanable(isbn, lib.code).then(avail => {
-        const badge = row.querySelector('.badge');
-        if (avail === 'Y') { badge.className = 'badge loanable'; badge.textContent = '대출 가능'; card.classList.add('available'); }
-        else if (avail === 'N') { badge.className = 'badge on-loan'; badge.textContent = '대출 중'; if (!card.classList.contains('available')) card.classList.add('unavailable'); }
-        else { badge.className = 'badge error'; badge.textContent = '미소장'; }
-      });
-    });
+      '<div class="lib-rows">' + rowsHtml + '</div>';
     return card;
   }
 
@@ -548,7 +567,7 @@
       const fmt = d => d.toISOString().slice(0, 10);
       let url = 'https://data4library.kr/api/loanItemSrch?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(from) + '&endDt=' + fmt(today) + '&format=json&pageSize=20';
       if (dtl) url += '&dtl_kdc=' + dtl;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, 8000);
       const json = await res.json();
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) { document.getElementById('popularResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
@@ -570,8 +589,8 @@
       const daysAgo = n => { const x = new Date(today); x.setDate(x.getDate() - n); return x; };
       const dtlParam = dtl ? '&dtl_kdc=' + dtl : '';
       const [r1, r2] = await Promise.all([
-        fetch('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam),
-        fetch('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam)
+        fetchWithTimeout('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam, 8000),
+        fetchWithTimeout('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam, 8000)
       ]);
       const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
       const map2 = {};
@@ -600,7 +619,7 @@
     try {
       let url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libCode + '&sortColumn=NEWEST&sortDirection=DESC&format=json&pageSize=20';
       if (dtl) url += '&kdc=' + dtl;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, 8000);
       const json = await res.json();
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) { document.getElementById('newResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
