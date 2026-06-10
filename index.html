@@ -518,7 +518,7 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
-      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3');
+      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=5');
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
