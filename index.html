@@ -664,7 +664,9 @@
       if (lib && isbn) {
         const badgeId = containerId + '-badge-' + i;
         const cardId = containerId + '-card-' + i;
-        checkLoanable(isbn, libCode).then(avail => {
+        fetchJson('https://data4library.kr/api/bookExist?authKey=' + API_KEY + '&libCode=' + libCode + '&isbn13=' + isbn + '&format=json')
+          .then(json => json && json.response && json.response.result && json.response.result.loanAvailable)
+          .then(avail => {
           const badge = document.getElementById(badgeId);
           const cardEl = document.getElementById(cardId);
           if (!badge || !cardEl) return;
