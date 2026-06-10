@@ -527,10 +527,9 @@
       }
 
       // 책 목록 즉시 렌더
-      const container = document.createElement('div');
-      container.innerHTML = '<div class="result-count">검색 결과 ' + books.length + '건</div>';
-      books.forEach((book, bi) => container.appendChild(makeSearchCard(book, libs, bi)));
-      document.getElementById('searchResults').innerHTML = container.outerHTML;
+      const resultsEl = document.getElementById('searchResults');
+      resultsEl.innerHTML = '<div class="result-count">검색 결과 ' + books.length + '건</div>';
+      books.forEach((book, bi) => resultsEl.appendChild(makeSearchCard(book, libs, bi)));
 
       // 대출 가능 여부: 책별로 모든 도서관 동시 조회
       books.forEach((book, bi) => {
