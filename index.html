@@ -469,7 +469,7 @@
     if (e.key === 'Enter') startSearch();
   });
 
-  const TIMEOUT_MS = 5000;
+  const TIMEOUT_MS = 12000;
   const CONCURRENCY = 6;
 
   async function fetchJson(url) {
@@ -523,7 +523,8 @@
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
-        document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
+        const msg = json ? JSON.stringify(json.response).slice(0, 200) : '응답 없음(타임아웃)';
+        document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.<br><small style="color:#999">' + msg + '</small></div>';
         return;
       }
 
