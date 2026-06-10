@@ -508,10 +508,8 @@
 
   async function startSearch() {
     const q = document.getElementById('query').value.trim();
-    console.log('[search] query:', q);
     if (!q) return;
     const libs = selectedLibs();
-    console.log('[search] libs:', libs);
     if (!libs.length) {
       document.getElementById('searchResults').innerHTML = '<div class="status">검색할 도서관을 하나 이상 선택하세요.</div>';
       return;
@@ -520,16 +518,11 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
-      const apiUrl = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3';
-      console.log('[search] url:', apiUrl);
-      // 첫 번째 선택 도서관으로 검색
-      const json = await fetchJson(apiUrl);
-      console.log('[search] json:', json);
+      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=3');
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
-        const msg = json ? JSON.stringify(json.response).slice(0, 200) : '응답 없음(타임아웃)';
-        document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.<br><small style="color:#999">' + msg + '</small></div>';
+        document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
         return;
       }
 
@@ -592,8 +585,7 @@
       const fmt = d => d.toISOString().slice(0, 10);
       let url = 'https://data4library.kr/api/loanItemSrch?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(from) + '&endDt=' + fmt(today) + '&format=json&pageSize=20';
       if (dtl) url += '&dtl_kdc=' + dtl;
-      const res = await fetchWithTimeout(url, 8000);
-      const json = await res.json();
+      const json = await fetchJson(url);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) { document.getElementById('popularResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
       renderRankedBooks(books, libCode, 'popularResults', b => '대출 ' + b.loan_count + '회');
@@ -613,11 +605,10 @@
       const fmt = d => d.toISOString().slice(0, 10);
       const daysAgo = n => { const x = new Date(today); x.setDate(x.getDate() - n); return x; };
       const dtlParam = dtl ? '&dtl_kdc=' + dtl : '';
-      const [r1, r2] = await Promise.all([
-        fetchWithTimeout('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam, 8000),
-        fetchWithTimeout('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam, 8000)
+      const [j1, j2] = await Promise.all([
+        fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam),
+        fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam)
       ]);
-      const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
       const map2 = {};
       ((j2 && j2.response && j2.response.docs) || []).forEach(d => {
         if (d.doc && d.doc.isbn13) map2[d.doc.isbn13] = Number(d.doc.loan_count || 0);
@@ -644,8 +635,7 @@
     try {
       let url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libCode + '&sortColumn=NEWEST&sortDirection=DESC&format=json&pageSize=20';
       if (dtl) url += '&kdc=' + dtl;
-      const res = await fetchWithTimeout(url, 8000);
-      const json = await res.json();
+      const json = await fetchJson(url);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
       if (!books.length) { document.getElementById('newResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
       renderRankedBooks(books, libCode, 'newResults', b => b.publicationYear ? '출판연도: ' + b.publicationYear : '');
