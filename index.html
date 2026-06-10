@@ -42,7 +42,30 @@
       padding: 0 1rem;
     }
 
-    /* 검색 카드 */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    .tab-btn {
+      padding: 0.6rem 1rem;
+      border: none;
+      background: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--gray-400);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     .search-card {
       background: white;
       border-radius: 12px;
@@ -83,7 +106,6 @@
     .search-row button:hover { background: var(--primary-hover); }
     .search-row button:disabled { background: var(--gray-400); cursor: not-allowed; }
 
-    /* 도서관 선택 */
     .lib-grid {
       display: flex;
       flex-wrap: wrap;
@@ -127,7 +149,43 @@
     }
     .lib-actions button:hover { border-color: var(--primary); color: var(--primary); }
 
-    /* 상태 메시지 */
+    .filter-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .filter-group label { font-size: 0.78rem; color: var(--gray-600); font-weight: 600; }
+    .filter-group select {
+      padding: 0.5rem 0.75rem;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      outline: none;
+      background: white;
+      cursor: pointer;
+    }
+    .filter-group select:focus { border-color: var(--primary); }
+    .filter-btn {
+      padding: 0.55rem 1.2rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .filter-btn:hover { background: var(--primary-hover); }
+    .filter-btn:disabled { background: var(--gray-400); cursor: not-allowed; }
+
     .status {
       text-align: center;
       padding: 1.5rem;
@@ -135,7 +193,6 @@
       font-size: 0.9rem;
     }
 
-    /* 결과 */
     .result-count {
       font-size: 0.85rem;
       color: var(--gray-600);
@@ -153,6 +210,17 @@
     .book-card.available { border-left-color: var(--success); }
     .book-card.unavailable { border-left-color: var(--gray-200); }
 
+    .book-rank {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: #eff6ff;
+      border-radius: 6px;
+      padding: 0.1rem 0.45rem;
+      margin-bottom: 0.35rem;
+    }
+
     .book-title {
       font-size: 1rem;
       font-weight: 600;
@@ -163,6 +231,11 @@
       font-size: 0.8rem;
       color: var(--gray-600);
       margin-bottom: 0.6rem;
+    }
+    .book-extra {
+      font-size: 0.78rem;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
     }
 
     .lib-rows { display: flex; flex-direction: column; gap: 0.35rem; }
@@ -215,20 +288,99 @@
 </header>
 
 <main>
-  <div class="search-card">
-    <div class="search-row">
-      <input id="query" type="text" placeholder="도서 제목 또는 저자를 입력하세요" />
-      <button id="searchBtn" onclick="startSearch()">검색</button>
-    </div>
-
-    <div class="lib-grid" id="libGrid"></div>
-    <div class="lib-actions">
-      <button onclick="selectAll()">전체 선택</button>
-      <button onclick="clearAll()">전체 해제</button>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('search', this)">도서 검색</button>
+    <button class="tab-btn" onclick="switchTab('popular', this)">인기 도서</button>
+    <button class="tab-btn" onclick="switchTab('rising', this)">대출 급상승</button>
+    <button class="tab-btn" onclick="switchTab('new', this)">신착 도서</button>
   </div>
 
-  <div id="results"></div>
+  <div id="tab-search" class="tab-panel active">
+    <div class="search-card">
+      <div class="search-row">
+        <input id="query" type="text" placeholder="도서 제목 또는 저자를 입력하세요" />
+        <button id="searchBtn" onclick="startSearch()">검색</button>
+      </div>
+      <div class="lib-grid" id="libGrid"></div>
+      <div class="lib-actions">
+        <button onclick="selectAll('libGrid')">전체 선택</button>
+        <button onclick="clearAll('libGrid')">전체 해제</button>
+      </div>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <div id="tab-popular" class="tab-panel">
+    <div class="filter-card">
+      <div class="filter-group">
+        <label>도서관</label>
+        <select id="popularLib"></select>
+      </div>
+      <div class="filter-group">
+        <label>분야</label>
+        <select id="popularDtl">
+          <option value="">전체</option>
+          <option value="1">총류</option><option value="2">철학</option><option value="3">종교</option>
+          <option value="4">사회과학</option><option value="5">자연과학</option><option value="6">기술과학</option>
+          <option value="7">예술</option><option value="8">언어</option><option value="9">문학</option>
+          <option value="10">역사</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>기간</label>
+        <select id="popularPeriod">
+          <option value="7">최근 7일</option>
+          <option value="30" selected>최근 30일</option>
+          <option value="90">최근 90일</option>
+          <option value="365">최근 1년</option>
+        </select>
+      </div>
+      <button class="filter-btn" id="popularBtn" onclick="loadPopular()">조회</button>
+    </div>
+    <div id="popularResults"><div class="status">조회 버튼을 눌러 인기 도서를 확인하세요.</div></div>
+  </div>
+
+  <div id="tab-rising" class="tab-panel">
+    <div class="filter-card">
+      <div class="filter-group">
+        <label>도서관</label>
+        <select id="risingLib"></select>
+      </div>
+      <div class="filter-group">
+        <label>분야</label>
+        <select id="risingDtl">
+          <option value="">전체</option>
+          <option value="1">총류</option><option value="2">철학</option><option value="3">종교</option>
+          <option value="4">사회과학</option><option value="5">자연과학</option><option value="6">기술과학</option>
+          <option value="7">예술</option><option value="8">언어</option><option value="9">문학</option>
+          <option value="10">역사</option>
+        </select>
+      </div>
+      <button class="filter-btn" id="risingBtn" onclick="loadRising()">조회</button>
+    </div>
+    <div id="risingResults"><div class="status">조회 버튼을 눌러 대출 급상승 도서를 확인하세요.</div></div>
+  </div>
+
+  <div id="tab-new" class="tab-panel">
+    <div class="filter-card">
+      <div class="filter-group">
+        <label>도서관</label>
+        <select id="newLib"></select>
+      </div>
+      <div class="filter-group">
+        <label>분야</label>
+        <select id="newDtl">
+          <option value="">전체</option>
+          <option value="1">총류</option><option value="2">철학</option><option value="3">종교</option>
+          <option value="4">사회과학</option><option value="5">자연과학</option><option value="6">기술과학</option>
+          <option value="7">예술</option><option value="8">언어</option><option value="9">문학</option>
+          <option value="10">역사</option>
+        </select>
+      </div>
+      <button class="filter-btn" id="newBtn" onclick="loadNew()">조회</button>
+    </div>
+    <div id="newResults"><div class="status">조회 버튼을 눌러 신착 도서를 확인하세요.</div></div>
+  </div>
 </main>
 
 <footer>도서관 정보나루(data4library.kr) API 사용 · 실시간 대출 현황은 도서관 시스템과 차이가 있을 수 있습니다</footer>
@@ -236,7 +388,6 @@
 <script>
   const API_KEY = '77fac64086c77f9fe512abdf0e485011f44a24e7950ec86ad24cbe9f9a230c80';
 
-  // 화성시 동탄 지역 도서관 목록 (libCode는 도서관 정보나루 기준)
   const LIBRARIES = [
     { name: '동탄도서관',            code: 'RM_HS001' },
     { name: '동탄복합문화센터도서관', code: 'RM_HS002' },
@@ -246,32 +397,43 @@
     { name: '남양도서관',             code: 'RM_HS006' },
   ];
 
-  // 도서관 칩 렌더링
   const grid = document.getElementById('libGrid');
   LIBRARIES.forEach(lib => {
     const chip = document.createElement('label');
     chip.className = 'lib-chip checked';
     chip.dataset.code = lib.code;
-    chip.innerHTML = `<input type="checkbox" checked />${lib.name}`;
-    chip.addEventListener('change', () => {});
-    chip.addEventListener('click', () => toggleChip(chip));
+    chip.innerHTML = '<input type="checkbox" checked />' + lib.name;
+    chip.addEventListener('click', () => chip.classList.toggle('checked'));
     grid.appendChild(chip);
   });
 
-  function toggleChip(chip) {
-    chip.classList.toggle('checked');
+  ['popularLib', 'risingLib', 'newLib'].forEach(id => {
+    const sel = document.getElementById(id);
+    LIBRARIES.forEach(lib => {
+      const opt = document.createElement('option');
+      opt.value = lib.code;
+      opt.textContent = lib.name;
+      sel.appendChild(opt);
+    });
+  });
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
   }
-  function selectAll() {
-    document.querySelectorAll('.lib-chip').forEach(c => c.classList.add('checked'));
+
+  function selectAll(gridId) {
+    document.querySelectorAll('#' + gridId + ' .lib-chip').forEach(c => c.classList.add('checked'));
   }
-  function clearAll() {
-    document.querySelectorAll('.lib-chip').forEach(c => c.classList.remove('checked'));
+  function clearAll(gridId) {
+    document.querySelectorAll('#' + gridId + ' .lib-chip').forEach(c => c.classList.remove('checked'));
   }
 
   function selectedLibs() {
-    return [...document.querySelectorAll('.lib-chip.checked')].map(c => ({
-      name: c.textContent.trim(),
-      code: c.dataset.code,
+    return [...document.querySelectorAll('#libGrid .lib-chip.checked')].map(c => ({
+      name: c.textContent.trim(), code: c.dataset.code,
     }));
   }
 
@@ -279,106 +441,178 @@
     if (e.key === 'Enter') startSearch();
   });
 
-  async function startSearch() {
-    const q = document.getElementById('query').value.trim();
-    if (!q) return;
-
-    const libs = selectedLibs();
-    if (!libs.length) {
-      setResults('<div class="status">검색할 도서관을 하나 이상 선택하세요.</div>');
-      return;
-    }
-
-    document.getElementById('searchBtn').disabled = true;
-    setResults('<div class="status"><span class="loader"></span> 검색 중…</div>');
-
-    try {
-      // 1단계: 도서 목록 조회 (첫 번째 선택 도서관 기준)
-      const books = await searchBooks(q, libs[0].code);
-      if (!books.length) {
-        setResults('<div class="status">검색 결과가 없습니다.</div>');
-        return;
-      }
-
-      // 2단계: 각 도서의 선택된 도서관별 소장 여부 조회
-      renderBooks(books, libs);
-    } catch (err) {
-      setResults(`<div class="status">오류가 발생했습니다: ${err.message}</div>`);
-    } finally {
-      document.getElementById('searchBtn').disabled = false;
-    }
-  }
-
-  async function searchBooks(keyword, libCode) {
-    const url = `https://data4library.kr/api/srchBooks?authKey=${API_KEY}&libCode=${libCode}&title=${encodeURIComponent(keyword)}&format=json&pageSize=10`;
-    const res = await fetch(url);
-    const json = await res.json();
-    const docs = json?.response?.docs;
-    if (!docs) return [];
-    return docs.map(d => d.doc).filter(Boolean);
-  }
-
   async function checkLoanable(isbn13, libCode) {
     if (!isbn13) return null;
     try {
-      const url = `https://data4library.kr/api/bookExist?authKey=${API_KEY}&libCode=${libCode}&isbn13=${isbn13}&format=json`;
+      const url = 'https://data4library.kr/api/bookExist?authKey=' + API_KEY + '&libCode=' + libCode + '&isbn13=' + isbn13 + '&format=json';
       const res = await fetch(url);
       const json = await res.json();
-      return json?.response?.result?.loanAvailable; // 'Y' or 'N'
-    } catch {
-      return null;
+      return json && json.response && json.response.result && json.response.result.loanAvailable;
+    } catch (e) { return null; }
+  }
+
+  async function startSearch() {
+    const q = document.getElementById('query').value.trim();
+    if (!q) return;
+    const libs = selectedLibs();
+    if (!libs.length) {
+      document.getElementById('searchResults').innerHTML = '<div class="status">검색할 도서관을 하나 이상 선택하세요.</div>';
+      return;
+    }
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
+    try {
+      const url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=10';
+      const res = await fetch(url);
+      const json = await res.json();
+      const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
+      if (!books.length) {
+        document.getElementById('searchResults').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
+        return;
+      }
+      const container = document.createElement('div');
+      container.innerHTML = '<div class="result-count">검색 결과 ' + books.length + '건</div>';
+      books.forEach(book => container.appendChild(makeSearchCard(book, libs)));
+      document.getElementById('searchResults').innerHTML = container.outerHTML;
+    } catch (err) {
+      document.getElementById('searchResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
+    } finally {
+      btn.disabled = false;
     }
   }
 
-  function renderBooks(books, libs) {
-    const container = document.createElement('div');
-    container.innerHTML = `<div class="result-count">검색 결과 ${books.length}건</div>`;
-
-    books.forEach(book => {
-      const card = document.createElement('div');
-      card.className = 'book-card';
-      card.innerHTML = `
-        <div class="book-title">${book.titleStatement || '제목 없음'}</div>
-        <div class="book-meta">${[book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ')}</div>
-        <div class="lib-rows" id="rows-${book.isbn13}"></div>
-      `;
-      container.appendChild(card);
-
-      const rowsEl = card.querySelector(`#rows-${book.isbn13}`);
-
-      // 각 도서관에 대해 비동기 조회
-      libs.forEach(lib => {
-        const row = document.createElement('div');
-        row.className = 'lib-row';
-        row.innerHTML = `
-          <span class="lib-name">${lib.name}</span>
-          <span class="badge error"><span class="loader"></span></span>
-        `;
-        rowsEl.appendChild(row);
-
-        checkLoanable(book.isbn13, lib.code).then(avail => {
-          const badge = row.querySelector('.badge');
-          if (avail === 'Y') {
-            badge.className = 'badge loanable';
-            badge.textContent = '대출 가능';
-            card.classList.add('available');
-          } else if (avail === 'N') {
-            badge.className = 'badge on-loan';
-            badge.textContent = '대출 중';
-            if (!card.classList.contains('available')) card.classList.add('unavailable');
-          } else {
-            badge.className = 'badge error';
-            badge.textContent = '미소장';
-          }
-        });
+  function makeSearchCard(book, libs) {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    const isbn = book.isbn13 || book.isbn || '';
+    const rowsId = 'rows-' + isbn + '-' + Math.random().toString(36).slice(2);
+    card.innerHTML =
+      '<div class="book-title">' + (book.titleStatement || '제목 없음') + '</div>' +
+      '<div class="book-meta">' + [book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
+      '<div class="lib-rows" id="' + rowsId + '"></div>';
+    const rowsEl = card.querySelector('#' + rowsId);
+    libs.forEach(lib => {
+      const row = document.createElement('div');
+      row.className = 'lib-row';
+      row.innerHTML = '<span class="lib-name">' + lib.name + '</span><span class="badge error"><span class="loader"></span></span>';
+      rowsEl.appendChild(row);
+      checkLoanable(isbn, lib.code).then(avail => {
+        const badge = row.querySelector('.badge');
+        if (avail === 'Y') { badge.className = 'badge loanable'; badge.textContent = '대출 가능'; card.classList.add('available'); }
+        else if (avail === 'N') { badge.className = 'badge on-loan'; badge.textContent = '대출 중'; if (!card.classList.contains('available')) card.classList.add('unavailable'); }
+        else { badge.className = 'badge error'; badge.textContent = '미소장'; }
       });
     });
-
-    setResults(container.outerHTML);
+    return card;
   }
 
-  function setResults(html) {
-    document.getElementById('results').innerHTML = html;
+  async function loadPopular() {
+    const libCode = document.getElementById('popularLib').value;
+    const dtl = document.getElementById('popularDtl').value;
+    const period = document.getElementById('popularPeriod').value;
+    const btn = document.getElementById('popularBtn');
+    btn.disabled = true;
+    document.getElementById('popularResults').innerHTML = '<div class="status"><span class="loader"></span> 조회 중&hellip;</div>';
+    try {
+      const today = new Date(), from = new Date(today);
+      from.setDate(from.getDate() - Number(period));
+      const fmt = d => d.toISOString().slice(0, 10);
+      let url = 'https://data4library.kr/api/loanItemSrch?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(from) + '&endDt=' + fmt(today) + '&format=json&pageSize=20';
+      if (dtl) url += '&dtl_kdc=' + dtl;
+      const res = await fetch(url);
+      const json = await res.json();
+      const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
+      if (!books.length) { document.getElementById('popularResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
+      renderRankedBooks(books, libCode, 'popularResults', b => '대출 ' + b.loan_count + '회');
+    } catch (err) {
+      document.getElementById('popularResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
+    } finally { btn.disabled = false; }
+  }
+
+  async function loadRising() {
+    const libCode = document.getElementById('risingLib').value;
+    const dtl = document.getElementById('risingDtl').value;
+    const btn = document.getElementById('risingBtn');
+    btn.disabled = true;
+    document.getElementById('risingResults').innerHTML = '<div class="status"><span class="loader"></span> 조회 중&hellip;</div>';
+    try {
+      const today = new Date();
+      const fmt = d => d.toISOString().slice(0, 10);
+      const daysAgo = n => { const x = new Date(today); x.setDate(x.getDate() - n); return x; };
+      const dtlParam = dtl ? '&dtl_kdc=' + dtl : '';
+      const [r1, r2] = await Promise.all([
+        fetch('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam),
+        fetch('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam)
+      ]);
+      const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
+      const map2 = {};
+      ((j2 && j2.response && j2.response.docs) || []).forEach(d => {
+        if (d.doc && d.doc.isbn13) map2[d.doc.isbn13] = Number(d.doc.loan_count || 0);
+      });
+      const books = ((j1 && j1.response && j1.response.docs) || []).map(d => d.doc).filter(Boolean);
+      const rising = books
+        .map(b => Object.assign({}, b, { diff: Number(b.loan_count || 0) - (map2[b.isbn13] || 0) }))
+        .filter(b => b.diff > 0)
+        .sort((a, b) => b.diff - a.diff)
+        .slice(0, 20);
+      if (!rising.length) { document.getElementById('risingResults').innerHTML = '<div class="status">급상승 도서가 없습니다.</div>'; return; }
+      renderRankedBooks(rising, libCode, 'risingResults', b => '▲ ' + b.diff + '회 증가 (이번주 ' + b.loan_count + '회)');
+    } catch (err) {
+      document.getElementById('risingResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
+    } finally { btn.disabled = false; }
+  }
+
+  async function loadNew() {
+    const libCode = document.getElementById('newLib').value;
+    const dtl = document.getElementById('newDtl').value;
+    const btn = document.getElementById('newBtn');
+    btn.disabled = true;
+    document.getElementById('newResults').innerHTML = '<div class="status"><span class="loader"></span> 조회 중&hellip;</div>';
+    try {
+      let url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libCode + '&sortColumn=NEWEST&sortDirection=DESC&format=json&pageSize=20';
+      if (dtl) url += '&kdc=' + dtl;
+      const res = await fetch(url);
+      const json = await res.json();
+      const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
+      if (!books.length) { document.getElementById('newResults').innerHTML = '<div class="status">결과가 없습니다.</div>'; return; }
+      renderRankedBooks(books, libCode, 'newResults', b => b.publicationYear ? '출판연도: ' + b.publicationYear : '');
+    } catch (err) {
+      document.getElementById('newResults').innerHTML = '<div class="status">오류: ' + err.message + '</div>';
+    } finally { btn.disabled = false; }
+  }
+
+  function renderRankedBooks(books, libCode, containerId, extraFn) {
+    const lib = LIBRARIES.find(l => l.code === libCode);
+    const container = document.createElement('div');
+    container.innerHTML = '<div class="result-count">' + books.length + '권</div>';
+    books.forEach((book, i) => {
+      const card = document.createElement('div');
+      card.className = 'book-card';
+      card.id = containerId + '-card-' + i;
+      const extra = extraFn ? extraFn(book) : '';
+      const isbn = book.isbn13 || book.isbn || '';
+      card.innerHTML =
+        '<div class="book-rank">' + (i + 1) + '위</div>' +
+        '<div class="book-title">' + (book.titleStatement || book.title || '제목 없음') + '</div>' +
+        '<div class="book-meta">' + [book.author, book.publisher, book.publicationYear].filter(Boolean).join(' · ') + '</div>' +
+        (extra ? '<div class="book-extra">' + extra + '</div>' : '') +
+        (lib ? '<div class="lib-rows"><div class="lib-row"><span class="lib-name">' + lib.name + '</span><span class="badge error" id="' + containerId + '-badge-' + i + '"><span class="loader"></span></span></div></div>' : '');
+      container.appendChild(card);
+      if (lib && isbn) {
+        const badgeId = containerId + '-badge-' + i;
+        const cardId = containerId + '-card-' + i;
+        checkLoanable(isbn, libCode).then(avail => {
+          const badge = document.getElementById(badgeId);
+          const cardEl = document.getElementById(cardId);
+          if (!badge || !cardEl) return;
+          if (avail === 'Y') { badge.className = 'badge loanable'; badge.textContent = '대출 가능'; cardEl.classList.add('available'); }
+          else if (avail === 'N') { badge.className = 'badge on-loan'; badge.textContent = '대출 중'; cardEl.classList.add('unavailable'); }
+          else { badge.className = 'badge error'; badge.textContent = '미소장'; }
+        });
+      }
+    });
+    document.getElementById(containerId).innerHTML = container.outerHTML;
   }
 </script>
 
