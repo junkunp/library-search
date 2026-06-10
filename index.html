@@ -427,10 +427,10 @@
   const DEFAULT_SELECTED = new Set(['141283', '141611', '141578', '141624']);
   const grid = document.getElementById('libGrid');
   LIBRARIES.forEach(lib => {
-    const chip = document.createElement('label');
+    const chip = document.createElement('div');
     chip.className = 'lib-chip' + (DEFAULT_SELECTED.has(lib.code) ? ' checked' : '');
     chip.dataset.code = lib.code;
-    chip.innerHTML = '<input type="checkbox"' + (DEFAULT_SELECTED.has(lib.code) ? ' checked' : '') + ' />' + lib.name;
+    chip.textContent = lib.name;
     chip.addEventListener('click', () => chip.classList.toggle('checked'));
     grid.appendChild(chip);
   });
