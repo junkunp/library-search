@@ -388,7 +388,7 @@
 <footer>도서관 정보나루(data4library.kr) API 사용 · 실시간 대출 현황은 도서관 시스템과 차이가 있을 수 있습니다</footer>
 
 <script>
-  const API_KEY = '77fac64086c77f9fe512abdf0e485011f44a24e7950ec86ad24cbe9f9a230c80';
+  const PROXY = 'https://library-proxy.sungmin-jeon78.workers.dev';
 
   const LIBRARIES = [
     { name: '화성동탄중앙도서관',                 code: '141283' },
@@ -501,7 +501,7 @@
   async function checkLoanableAll(isbn13, libs) {
     if (!isbn13) return libs.map(() => null);
     const tasks = libs.map(lib => () =>
-      fetchJson('https://data4library.kr/api/bookExist?authKey=' + API_KEY + '&libCode=' + lib.code + '&isbn13=' + isbn13 + '&format=json')
+      fetchJson(PROXY + '/api/bookExist?libCode=' + lib.code + '&isbn13=' + isbn13)
         .then(json => json && json.response && json.response.result && json.response.result.loanAvailable)
     );
     return runPool(tasks, CONCURRENCY);
@@ -519,7 +519,7 @@
     btn.disabled = true;
     document.getElementById('searchResults').innerHTML = '<div class="status"><span class="loader"></span> 검색 중&hellip;</div>';
     try {
-      const json = await fetchJson('https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&format=json&pageSize=10');
+      const json = await fetchJson(PROXY + '/api/srchBooks?libCode=' + libs[0].code + '&title=' + encodeURIComponent(q) + '&pageSize=10');
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
 
       if (!books.length) {
@@ -583,7 +583,7 @@
       const today = new Date(), from = new Date(today);
       from.setDate(from.getDate() - Number(period));
       const fmt = d => d.toISOString().slice(0, 10);
-      let url = 'https://data4library.kr/api/loanItemSrch?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(from) + '&endDt=' + fmt(today) + '&format=json&pageSize=20';
+      let url = PROXY + '/api/loanItemSrch?libCode=' + libCode + '&startDt=' + fmt(from) + '&endDt=' + fmt(today) + '&pageSize=20';
       if (dtl) url += '&dtl_kdc=' + dtl;
       const json = await fetchJson(url);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
@@ -606,8 +606,8 @@
       const daysAgo = n => { const x = new Date(today); x.setDate(x.getDate() - n); return x; };
       const dtlParam = dtl ? '&dtl_kdc=' + dtl : '';
       const [j1, j2] = await Promise.all([
-        fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&format=json&pageSize=50' + dtlParam),
-        fetchJson('https://data4library.kr/api/loanItemSrchByLib?authKey=' + API_KEY + '&libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&format=json&pageSize=50' + dtlParam)
+        fetchJson(PROXY + '/api/loanItemSrchByLib?libCode=' + libCode + '&startDt=' + fmt(daysAgo(7)) + '&endDt=' + fmt(daysAgo(1)) + '&pageSize=50' + dtlParam),
+        fetchJson(PROXY + '/api/loanItemSrchByLib?libCode=' + libCode + '&startDt=' + fmt(daysAgo(14)) + '&endDt=' + fmt(daysAgo(8)) + '&pageSize=50' + dtlParam)
       ]);
       // 저번 주 isbn13 셋
       const prevSet = new Set();
@@ -631,7 +631,7 @@
     btn.disabled = true;
     document.getElementById('newResults').innerHTML = '<div class="status"><span class="loader"></span> 조회 중&hellip;</div>';
     try {
-      let url = 'https://data4library.kr/api/srchBooks?authKey=' + API_KEY + '&libCode=' + libCode + '&sortColumn=NEWEST&sortDirection=DESC&format=json&pageSize=20';
+      let url = PROXY + '/api/srchBooks?libCode=' + libCode + '&sortColumn=NEWEST&sortDirection=DESC&pageSize=20';
       if (dtl) url += '&kdc=' + dtl;
       const json = await fetchJson(url);
       const books = ((json && json.response && json.response.docs) || []).map(d => d.doc).filter(Boolean);
@@ -662,7 +662,7 @@
       if (lib && isbn) {
         const badgeId = containerId + '-badge-' + i;
         const cardId = containerId + '-card-' + i;
-        fetchJson('https://data4library.kr/api/bookExist?authKey=' + API_KEY + '&libCode=' + libCode + '&isbn13=' + isbn + '&format=json')
+        fetchJson(PROXY + '/api/bookExist?libCode=' + libCode + '&isbn13=' + isbn)
           .then(json => json && json.response && json.response.result && json.response.result.loanAvailable)
           .then(avail => {
           const badge = document.getElementById(badgeId);
